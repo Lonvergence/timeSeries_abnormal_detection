@@ -40,7 +40,6 @@ class MyNet(nn.Module):
         y_sup = self.net(sup_inp) #  [bz_sup,5]
         y_que = self.net(que_inp) #  [bz_que,5]
 
-#         mx_len = lcm(bz_sup, bz_que)
         mx_len = bz_sup * bz_que
 
         y_sup = y_sup.repeat(int(mx_len / bz_sup),1)
@@ -50,7 +49,6 @@ class MyNet(nn.Module):
         mean = torch.mean(y_dist)
         std = torch.std(y_dist)
         y_dist = (y_dist - mean) / (std + 1e-10)
-#         print(y_dist)
         y_p = self.act(y_dist)
 
         return y_p
@@ -82,7 +80,8 @@ class Loss(torch.nn.Module):
 
         con_label = label_sup.repeat(int(mx_len / label_sup.shape[0])) - label_que.repeat(int(mx_len / label_que.shape[0]))
 
-        con_label = torch.abs(con_label) # 1 表示不相似， 0 表示相似
+        # con_label = torch.abs(con_label) # 1 表示不相似， 0 表示相似
+        con_label = torch.where(x == 0, 0, 1)
 #         print(con_label)
 #         print(y_p)
 #         print(con_label)

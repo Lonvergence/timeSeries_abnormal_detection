@@ -4,7 +4,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from net import MyNet, Loss
 from block import GRUBlock, ConvBlock
-
+import random
+import numpy as np
 # batch_size * in_channels * time_length
 # x = torch.randn(4, 3, 10)
 
@@ -102,8 +103,56 @@ from block import GRUBlock, ConvBlock
 
 
 
+def process_each_channel(data, nums_task = 20,nums_sup = 20,nums_que = 20,time_length = 100):
+    # data 单变量时间序列
+    sup_data = []
+    que_data = []
+    sup_label = []
+    que_label = []
+
+    mx_time = data.shape[0]
+    
+    for _ in range(nums_task):
+        sup_label_tmp = [0] * 8 + [1] * 4 + [2] * 4 + [3] * 4
+        que_label_tmp = [0] * 8 + [1] * 4 + [2] * 4 + [3] * 4
+        sup_data_tmp = []
+        que_data_tmp = []
+
+        time_start_list = random.sample(range(mx_time-time_length+1), nums_sup + nums_que)
+        data_sample = [data[i:i + time_length] for i in time_start_list]
+        sup_data_tmp = data_sample[0:nums_sup]
+        que_data_tmp = data_sample[nums_sup:nums_que + nums_sup]
 
 
+        for label in sup_label_tmp:
+            if label == 0:
+                pass
+            elif label == 1:
+                pass
+            elif label == 2:
+                pass
+            else:
+                pass 
+        
+        for label in que_label_tmp:
+            if label == 0:
+                pass
+            elif label == 1:
+                pass
+            elif label == 2:
+                pass
+            else:
+                pass 
 
+        sup_data.append(sup_data_tmp)
+        que_data.append(que_data_tmp)
+        sup_label.append(sup_label_tmp)
+        que_label.append(que_label_tmp)
 
+    return sup_data, que_data, sup_label, que_label
+
+data = np.random.randn(10000, 1)
+a, b, c, d = process_each_channel(data)
+a = np.array(a)
+print(a.shape)
 

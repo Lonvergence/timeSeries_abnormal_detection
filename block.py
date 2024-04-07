@@ -28,27 +28,36 @@ class ConvBlock(nn.Module):
 
     def forward(self, input_data):
 
-        # input_data  [batch_size, in_channels, time_length]
+        # # input_data  [batch_size, in_channels, time_length]
+        # shape = input_data.shape
+        # N = shape[0]
+        # C = shape[1]   # C = 1
+        # T = shape[2]
+        
+        # x = input_data
+        # if len(shape) == 3:
+        #     x = torch.unsqueeze(input_data, -1).permute(0,1,3,2) # x [N, C, 1, T]
+        # elif len(shape) == 4:
+        #     x = x.permute(0,1,3,2)
+
+        # x = x.view(N * C, self.in_channels, T)
+
+        # y = self.net(x) # y [N * C, 32, T]
+
+        # output = y.view(N, C, self.out_channels, T) # output [N, C, K, T]
+
+        # output = torch.mean(output, dim=1) # output [N, K, T]
+
+        # return output
+
         shape = input_data.shape
         N = shape[0]
-        C = shape[1]
+        C = shape[1]   # C = 1
         T = shape[2]
-        
-        x = input_data
-        if len(shape) == 3:
-            x = torch.unsqueeze(input_data, -1).permute(0,1,3,2) # x [N, C, 1, T]
-        elif len(shape) == 4:
-            x = x.permute(0,1,3,2)
 
-        x = x.view(N * C, self.in_channels, T)
+        y = self.net(input_data)
 
-        y = self.net(x) # y [N * C, 32, T]
-
-        output = y.view(N, C, self.out_channels, T) # output [N, C, K, T]
-
-        output = torch.mean(output, dim=1) # output [N, K, T]
-
-        return output
+        return y
 
 
 
