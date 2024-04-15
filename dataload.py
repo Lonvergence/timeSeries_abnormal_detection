@@ -58,30 +58,38 @@ def process_each_channel(data, nums_task = 20,nums_sup = 20,nums_que = 20,time_l
 
         time_start_list = random.sample(range(mx_time-time_length+1), nums_sup + nums_que)
         data_sample = [data[i:i + time_length] for i in time_start_list]
+
+        mean = np.mean(data_sample, axis=(0,1))
+        std = np.mean(data_sample, axis=(0,1))
+        data_sample = (data_sample - mean) / (std + np.finfo(np.float64).eps)
+
         sup_data_tmp = data_sample[0:nums_sup]
         que_data_tmp = data_sample[nums_sup:nums_que + nums_sup]
 
-
-        for label in sup_label_tmp:
+        for i, label in enumerate(sup_label_tmp):
+            x, y = generate_sequence(0, time_length)
             if label == 0:
                 pass
             elif label == 1:
-                pass
+                mx = max(sup_data_tmp[i])
+                sup_data_tmp[i][x:y] = mx
             elif label == 2:
-                pass
+                sup_data_tmp[i][x:y] = 0
             else:
-                pass 
+                sup_data_tmp[i][x:int((x + y) / 2)] = sup_data_tmp[i][int((x + y) / 2):y] 
         
-        for label in que_label_tmp:
+        for i, label in enumerate(que_label_tmp):
+            x, y = generate_sequence(0, time_length)
             if label == 0:
                 pass
             elif label == 1:
-                pass
+                mx = max(sup_data_tmp[i])
+                que_data_tmp[i][x:y] = mx
             elif label == 2:
-                pass
+                que_data_tmp[i][x:y] = 0
             else:
-                pass 
-
+                que_data_tmp[i][x:int((x + y) / 2)] = sup_data_tmp[i][int((x + y) / 2):y] 
+        
         sup_data.append(sup_data_tmp)
         que_data.append(que_data_tmp)
         sup_label.append(sup_label_tmp)
@@ -91,7 +99,8 @@ def process_each_channel(data, nums_task = 20,nums_sup = 20,nums_que = 20,time_l
 
 # 将多变量序列拆成单变量数据使用
 def dataloader_with_uni_channels(path:str, nums_task = 20,nums_sup=20,nums_que=20,time_length=100):
-    data = np.load(path)[:, :-1] # [time, channels]
+    data = np.load(path)[:, :] # [time, channels]
+
     assert(len(data.shape) == 2)
 
     sup_data = []
@@ -100,19 +109,29 @@ def dataloader_with_uni_channels(path:str, nums_task = 20,nums_sup=20,nums_que=2
     que_label = []
 
     for i in range(data.shape[1]):
-        data_uni_channel = data[:][i:i+1]
+        data_uni_channel = data[:,i:i+1]
+        # (tasks, n_sup, times_length, 1)
+        sup_data_tmp, sup_data_tmp, sup_label_tmp, que_label_tmp = process_each_channel(data_uni_channel, nums_task, nums_sup,nums_que,time_length)
 
-        sup_data_tmp, # (tasks, n_sup, times_length, 1)
-        sup_data_tmp,
-        sup_label_tmp, # (tasks, n_sup)
-        que_label_tmp = process_each_channel(data_uni_channel, nums_task, nums_sup,nums_que,time_length)
-
-    sup_data += sup_data_tmp
-    que_data += sup_data_tmp
-    sup_label += sup_label_tmp
-    que_label += que_label_tmp
+        sup_data += sup_data_tmp
+        que_data += sup_data_tmp
+        sup_label += sup_label_tmp
+        que_label += que_label_tmp
 
 
     return sup_data, que_data, sup_label, que_label
 
 
+def generate_sequence(mn: int, mx: int):
+    x = random.randint(mn, mx)
+    y = random.randint(mn, mx)
+    if x > y: 
+        x, y = y, x
+    # y > x
+    if x == y or x == mn or y == mx:
+        return mn, mx
+    
+    if (y - x) % 2 == 1:
+        y += 1
+    return x, y
+    
