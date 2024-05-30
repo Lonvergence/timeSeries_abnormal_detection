@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 import time
 import random
 
-from net import MyNet, Loss
-from block import GRUBlock, ConvBlock
+from net import MyNet, Loss, Self_Attension_Net, Net
+from block import  ConvBlock
 from dataload import dataloader_with_uni_channels
 from config import Config
 
@@ -229,50 +229,53 @@ sup_test = []
 que_test = []
 sup_label_test = []
 que_label_test = []
-path_val = ['../raw_data/4.npy']
+# path_val = ['../raw_data/4.npy']
 
-for p in path_val:
-    st, qt, sl, ql = dataloader_with_uni_channels(p,nums_task = config.nums_task_val, time_length=config.time_length)
-    st = np.array(st)
-    qt = np.array(qt)
-    sl = np.array(sl)
-    ql = np.array(ql)
+# for p in path_val:
+#     st, qt, sl, ql = dataloader_with_uni_channels(p,nums_task = config.nums_task_val, time_length=config.time_length)
+#     st = np.array(st)
+#     qt = np.array(qt)
+#     sl = np.array(sl)
+#     ql = np.array(ql)
 
-    st = torch.tensor(st,dtype=torch.float)
-    qt = torch.tensor(qt,dtype=torch.float)
-    sl = torch.tensor(sl)
-    ql = torch.tensor(ql)
+#     st = torch.tensor(st,dtype=torch.float)
+#     qt = torch.tensor(qt,dtype=torch.float)
+#     sl = torch.tensor(sl)
+#     ql = torch.tensor(ql)
 
-#     sup_train.append(st)
-    sup_test += st
-    que_test += qt
-    sup_label_test += sl
-    que_label_test += ql
+# #     sup_train.append(st)
+#     sup_test += st
+#     que_test += qt
+#     sup_label_test += sl
+#     que_label_test += ql
 
-# model = MyNet(time_length=config.time_length)
-# torch.save(model.state_dict(), "../model/weights.pth")
+sup_test = np.load("../data/sup_test.npy", allow_pickle=True)
+que_test = np.load("../data/que_test.npy", allow_pickle=True)
+sup_label_test = np.load("../data/sup_label_test.npy", allow_pickle=True)
+que_label_test = np.load("../data/que_label_test.npy", allow_pickle=True)
 
-net = MyNet(time_length=config.time_length)
-net.load_state_dict(torch.load("../model/weights.pth"))
+
+net = Self_Attension_Net(time_length=config.time_length)
+net.load_state_dict(torch.load("../model/best.pth"))
 net.to(device)
 
 net.eval()
-
+net.double()
 n = len(sup_test)
 for i in range(n):
-    # sup_input = sup_train[i][:,:,:].to(device)
-    # que_input = que_train[i][:,:,:].to(device)
-    # sup_l = sup_label[i][:].to(device)
-    # que_l = que_label[i][:].to(device)
-    sup_input = sup_test[i][:,:,:].to(device)
-    que_input = que_test[i][:,:,:].to(device)
-    sup_l = sup_label_test[i][:].to(device)
-    que_l = que_label_test[i][:].to(device)
+    sup_input = sup_test[i][:,:,:].astype(float)
+    sup_input = torch.tensor(sup_input).to(device)
+    que_input = que_test[i][:,:,:].astype(float)
+    que_input = torch.tensor(que_input).to(device)
+    sup_l = sup_label_test[i][:]
+    sup_l = torch.tensor(sup_l).to(device)
+    que_l = que_label_test[i][:]
+    que_l = torch.tensor(que_l).to(device)
 
     outputs = net(sup_input, que_input)
     loss, pred, label_que, que_pred = loss_contrastive(outputs, (sup_l, que_l), False)
-    val_loss += loss.item()
-    val_acc += pred.item()
+    # val_loss += loss.item()
+    # val_acc += pred.item()
 
     label_que.cpu().numpy()
     # que_pred.cpu().numpy()         
@@ -282,6 +285,6 @@ for i in range(n):
             
 
 
-print(f"val_loss:{val_loss/n}")
-print(f"val_acc:{val_acc/n}")
+# print(f"val_loss:{val_loss/n}")
+# print(f"val_acc:{val_acc/n}")
 print(sklearn.metrics.classification_report(classification_report_val_real, classification_report_val_pred))

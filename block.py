@@ -63,30 +63,36 @@ class ConvBlock(nn.Module):
 
 
 
-class GRUBlock(nn.Module):
-    """Some Information about GRUBlock"""
+class Conv_LSTM(nn.Module):
+
     def __init__(self,input_size = 1, hidden_size = 32):
-        super(GRUBlock, self).__init__()
+        super(Conv_LSTM, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
 
         # net
-        self.gru1 = nn.GRU(input_size, hidden_size, 1, batch_first = True)
+        self.conv1 = nn.Conv1d(input_size, 16,kernel_size=3,stride=2,padding=1)
+        self.conv2 = nn.Conv1d(16, 16,kernel_size=3,stride=2,padding=1)
+        self.conv3 = nn.Conv1d(16, 16,kernel_size=3,stride=2,padding=1)
+        self.gru1 = nn.LSTM(16, hidden_size, 1, batch_first = True)
         # self.gru2 = nn.GRU(hidden_size, hidden_size, 1, batch_first = True)
         # self.gru3 = nn.GRU(hidden_size, hidden_size, 1, batch_first = True)
 
     def forward(self, x):
         # x [batch_size, nums_channels, time_length] [N, C, T]
-        x = x.permute(0, 2, 1)
-        shape = x.shape
-        N = shape[0]
-        C = shape[1]
-        T = shape[2]
+        # shape = x.shape
+        # N = shape[0]
+        # C = shape[1]
+        # T = shape[2]
 
         # x = torch.unsqueeze(x, -1) # [N, C, T, 1]
         # x = x.view(N * C, T, 1)
-
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        x = F.relu(self.conv3(x))
+        x = x.permute(0, 2, 1)
         output, _ = self.gru1(x) 
+
         # y, _ = self.gru2(y)
         # output, _ = self.gru3(y) # output [T, N * C, K=32]
 
@@ -126,18 +132,25 @@ class ResBlock(nn.Module):  #@save
         return F.relu(Y)
     
 class SelfAttention(nn.Module):
-    def __init__(self, embed_dim):
+    def __init__(self, embed_dim, length = 1000):
         super(SelfAttention, self).__init__()
+        self.length = length
+
         self.query = nn.Linear(embed_dim, embed_dim)
         self.key = nn.Linear(embed_dim, embed_dim)
         self.value = nn.Linear(embed_dim, embed_dim)
+        self.ln = nn.LayerNorm(self.length)
 
     def forward(self, x):
         x = x.permute(0,2,1)
+        origin = x
         q = self.query(x)
         k = self.key(x)
         v = self.value(x)
-        attn_weights = torch.matmul(q, k.transpose(1, 2))
+        attn_weights = torch.matmul(q, k.permute(0, 2, 1))
         attn_weights = nn.functional.softmax(attn_weights, dim=-1)
         attended_values = torch.matmul(attn_weights, v)
-        return attended_values.permute(0,2,1)
+        attended_values += origin
+        attended_values = attended_values.permute(0, 2, 1)
+        attended_values = self.ln(attended_values)
+        return attended_values
